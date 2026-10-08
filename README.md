@@ -8,9 +8,9 @@ Requer Node.js 24.x. Instale com `npm.cmd install`. Copie `.env.example` para `.
 
 ## Workflow
 
-O endpoint é `https://serverless.roboflow.com/carlos-viel-okshf/workflows/general-segmentation-api-5`, configurável pelas variáveis abaixo. A definição publicada foi confirmada pelo MCP Roboflow: entrada `image` (objeto `{type:"base64",value:"..."}`) e `classes` (lista de textos); saídas `predictions` e `annotated_image`. A chave vai em `api_key` no JSON enviado exclusivamente pelo servidor via HTTPS.
+O endpoint padrão é `https://serverless.roboflow.com/carlos-viel-okshf/workflows/doencas-o41wy`, configurável pelas variáveis abaixo. A definição publicada foi confirmada pelo MCP Roboflow: entrada `image` (objeto `{type:"base64",value:"..."}`); saídas `predictions`, `inference_id` e `model_id`. A chave vai em `api_key` no JSON enviado exclusivamente pelo servidor via HTTPS.
 
-O Workflow executa SAM3, segmentação por texto. Enviamos Bicho-mineiro, Cercosporiose, Ferrugem do cafeeiro e Mancha de Phoma. Esses nomes são associados aos identificadores existentes da interface; caixas, máscaras e confidências vêm da API. Confiança de segmentação não equivale a certeza de diagnóstico de doença. Classes desconhecidas mantêm o rótulo recebido. Não há resultados simulados no aplicativo.
+O Workflow executa o detector especializado RF-DETR Nano `carlos-viel-okshf/doencas-o41wy-1-rfdetr-nano-t1`, com as quatro classes originais do dataset. O modelo recebe apenas a imagem; as classes são fixas. O Workflow anterior `general-segmentation-api-5` executa SAM3 genérico por texto e retornou zero regiões na imagem de teste, enquanto o detector retornou dez. A confiança não equivale a certeza de diagnóstico. Classes desconhecidas mantêm o rótulo recebido. Não há resultados simulados no aplicativo. Veja o [diagnóstico e evidências](DIAGNOSTICO.md).
 
 A visualização `annotated_image` do provedor é descartada: a interface desenha a geometria real com suas próprias cores (âmbar, roxo, vermelho e azul). Máscaras RLE são renderizadas e removidas do JSON final. Resultado vazio retorna HTTP 200 com `status: "empty"`; formato incompatível gera erro, nunca uma falsa análise vazia.
 
@@ -23,13 +23,15 @@ Use a raiz deste repositório, preset Vite, Node.js 24.x, build `npm run build` 
 ```dotenv
 ROBOFLOW_API_URL=https://serverless.roboflow.com
 ROBOFLOW_WORKSPACE=carlos-viel-okshf
-ROBOFLOW_WORKFLOW_ID=general-segmentation-api-5
+ROBOFLOW_WORKFLOW_ID=doencas-o41wy
 ROBOFLOW_IMAGE_INPUT=image
 ROBOFLOW_CLASSES_INPUT=classes
 ROBOFLOW_API_KEY=<chave privada, somente no servidor>
 ```
 
-Faça novo deploy após salvar as variáveis. Não inclua colchetes nem formatação Markdown na URL. Nunca use prefixo `VITE_` para segredos. `.env` está ignorado pelo Git e não é modificado pela correção.
+Faça novo deploy com este código após salvar as variáveis. Um `ROBOFLOW_WORKFLOW_ID` antigo na Vercel sobrescreve o padrão corrigido. Nunca use prefixo `VITE_` para segredos. `.env` está ignorado pelo Git; apenas seu identificador de Workflow foi atualizado localmente, preservando a chave.
+
+O threshold publicado do detector é 0.4, NMS IoU 0.3, NMS entre classes desativado e máximo de 1000 detecções. Não há filtro adicional no backend ou frontend. Para testes, `ROBOFLOW_CONFIDENCE` aceita um número entre 0 e 1 somente em `doencas-o41wy`; qualquer override aparece como experimental. Deixe a variável ausente para preservar o padrão publicado.
 
 A função tem duração máxima de 60 segundos; o Roboflow tem orçamento total de 55 segundos e o navegador de 65 segundos. O navegador prepara imagens de até 10 MB como JPEG de até 1600 pixels e limita o arquivo enviado a 4 MB. O Express aceita até 4 MB e verifica o tamanho da resposta antes de enviá-la para respeitar o limite de 4,5 MB da Vercel.
 
@@ -42,6 +44,7 @@ npm.cmd test
 npm.cmd run build
 npm.cmd run test:e2e
 node --env-file-if-exists=.env scripts/verify-roboflow.mjs
+node --env-file-if-exists=.env scripts/verify-inference-ui.mjs caminho/folha.jpg
 node --env-file-if-exists=.env scripts/verify-api.mjs caminho/folha.jpg
 node --env-file-if-exists=.env scripts/verify-api.mjs caminho/folha.jpg https://seu-projeto.vercel.app
 ```
@@ -52,6 +55,6 @@ Os scripts de inferência fazem chamadas reais e podem consumir créditos. `veri
 
 ## Validação desta correção
 
-Build/TypeScript e testes de backend passaram. A definição do Workflow foi consultada e chamadas reais por URL e upload multipart retornaram JSON válido, sem detecções na imagem usada. Testes de navegador verificam cores, porcentagens, câmera, geometria e mensagens de erro em desktop e mobile.
+Build/TypeScript e testes de backend passaram. O fluxo real no navegador validou 10 predições recebidas, 10 exibidas, 0 filtradas pela aplicação e 10 caixas. Classes, confidências e coordenadas foram comparadas com a resposta original de cada chamada. Testes de navegador verificam cores, porcentagens, câmera, geometria e mensagens de erro em desktop e mobile.
 
-A ausência de configuração de backend no repositório foi confirmada. A resposta HTTP do deployment original não foi capturada porque nenhuma URL publicada foi fornecida. A configuração de deploy foi revisada; ainda precisa ser validada em um novo deployment na Vercel.
+O deployment `https://praga-cafe.vercel.app` foi testado com upload real e retornou HTTP 200 com zero detecções. A correção local foi validada, mas não publicada. É necessário alterar o Workflow nas variáveis da Vercel, fazer novo deploy e repetir o teste publicado.

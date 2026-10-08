@@ -1,0 +1,124 @@
+{
+  "outputs": [
+    {
+      "predictions": {
+        "image": {
+          "width": 1600,
+          "height": 800
+        },
+        "predictions": [
+          {
+            "width": 196,
+            "height": 175,
+            "x": 838,
+            "y": 569.5,
+            "confidence": 0.9642423987388611,
+            "class_id": 0,
+            "class": "bicho_mineirorotation",
+            "detection_id": "438f0138-6d1b-4a8a-9016-f9dbd4893649",
+            "parent_id": "image"
+          },
+          {
+            "width": 129,
+            "height": 55,
+            "x": 741.5,
+            "y": 363.5,
+            "confidence": 0.9329626560211182,
+            "class_id": 0,
+            "class": "bicho_mineirorotation",
+            "detection_id": "e20fc62d-9cfa-429a-a033-a6fd0275afab",
+            "parent_id": "image"
+          },
+          {
+            "width": 279,
+            "height": 139,
+            "x": 1032.5,
+            "y": 463.5,
+            "confidence": 0.9265368580818176,
+            "class_id": 0,
+            "class": "bicho_mineirorotation",
+            "detection_id": "54f226ac-6be4-4909-842c-8ccc15d41716",
+            "parent_id": "image"
+          },
+          {
+            "width": 144,
+            "height": 110,
+            "x": 183,
+            "y": 410,
+            "confidence": 0.9257434010505676,
+            "class_id": 0,
+            "class": "bicho_mineirorotation",
+            "detection_id": "6a517627-62d9-4877-bc25-f7e8afbb6a67",
+            "parent_id": "image"
+          },
+          {
+            "width": 109,
+            "height": 75,
+            "x": 593.5,
+            "y": 430.5,
+            "confidence": 0.9119306802749634,
+            "class_id": 0,
+            "class": "bicho_mineirorotation",
+            "detection_id": "34b23dda-f6a1-4e11-8a22-2d41725373dd",
+            "parent_id": "image"
+          },
+          {
+            "width": 61,
+            "height": 69,
+            "x": 1161.5,
+            "y": 232.5,
+            "confidence": 0.8965243697166443,
+            "class_id": 0,
+            "class": "bicho_mineirorotation",
+            "detection_id": "9507caa0-0f79-4040-a6a9-576e51bbdbc0",
+            "parent_id": "image"
+          },
+          {
+            "width": 65,
+            "height": 68,
+            "x": 302.5,
+            "y": 393,
+            "confidence": 0.8949830532073975,
+            "class_id": 0,
+            "class": "bicho_mineirorotation",
+            "detection_id": "22c96efe-9f52-4ec6-996d-3c2d58f73ea0",
+            "parent_id": "image"
+          },
+          {
+            "width": 53,
+            "height": 61,
+            "x": 597.5,
+            "y": 263.5,
+            "confidence": 0.8925811648368835,
+            "class_id": 0,
+            "class": "bicho_mineirorotation",
+            "detection_id": "da6f665d-2751-46ad-b886-2910d6c53c2d",
+            "parent_id": "image"
+          },
+          {
+            "width": 38,
+            "height": 50,
+            "x": 497,
+            "y": 264,
+            "confidence": 0.8634800910949707,
+            "class_id": 0,
+            "class": "bicho_mineirorotation",
+            "detection_id": "dc21a800-0ad9-45bc-81b0-6c3508f3b6df",
+            "parent_id": "image"
+          },
+          {
+            "width": 30,
+            "height": 31,
+            "x": 545,
+            "y": 503.5,
+            "confidence": 0.8209863901138306,
+            "class_id": 0,
+            "class": "bicho_mineirorotation",
+            "detection_id": "d041041e-d665-4a93-9801-047bfeb0da09",
+            "parent_id": "image"
+          }
+        ]
+      }
+    }
+  ]
+}

@@ -15,6 +15,8 @@ export function AnalysisResults({ result, onReset }: { result: Analysis; onReset
   const [selected, setSelected] = useState<number | null>(null);
   const maskPrefix = useId().replace(/:/g, '');
   const { width, height } = result.image;
+  const diagnostics = result.diagnostics;
+  const filtered = result.status === 'filtered' || Boolean(diagnostics && diagnostics.filteredCount > 0 && !result.detections.length);
   const groups = new Map<string, { detection: Detection; index: number }[]>();
   result.detections.forEach((detection, index) => {
     const group = groups.get(detection.className) ?? [];
@@ -33,8 +35,15 @@ export function AnalysisResults({ result, onReset }: { result: Analysis; onReset
       <span className="section-icon"><CircleCheck size={20} /></span>
       <div><h2 id="results-title">Análise concluída</h2><p>{result.detections.length
         ? `${result.detections.length} regiões identificadas em ${groups.size} ${groups.size === 1 ? 'classe' : 'classes'}.`
-        : 'Nenhuma ocorrência das classes monitoradas foi detectada.'}</p></div>
+        : filtered ? 'As predições retornadas foram eliminadas por filtros.' : 'Nenhuma predição retornada pelo modelo.'}</p></div>
     </div>
+    {diagnostics && <div className="notice"><Info size={18} /><p>
+      {diagnostics.experimental && <strong>Resultado experimental. </strong>}
+      {diagnostics.modelType === 'generic' ? 'Segmentação genérica por texto; o modelo não foi treinado para diagnosticar estas doenças. ' : diagnostics.modelType === 'specialized' ? 'Detector especializado nas classes de doenças do café. ' : ''}
+      {diagnostics.returnedCount} predições recebidas; {diagnostics.displayedCount} exibidas; {diagnostics.filteredCount} eliminadas pela aplicação.
+      {diagnostics.confidenceThreshold != null && ` Confiança mínima no Workflow: ${diagnostics.confidenceThreshold * 100}%.`}
+      {' O Roboflow não informa quantas propostas foram descartadas internamente.'}
+    </p></div>}
     <div className="result-grid">
       <div>
         <div className="image-tabs"><button aria-pressed={!overlay} onClick={() => setOverlay(false)}>Original</button><button aria-pressed={overlay} onClick={() => setOverlay(true)}>Regiões identificadas</button></div>
@@ -51,7 +60,8 @@ export function AnalysisResults({ result, onReset }: { result: Analysis; onReset
                     <defs><mask id={`${maskPrefix}-${i}`} maskUnits="userSpaceOnUse" x="0" y="0" width={width} height={height} style={{ maskType: 'alpha' }}><image href={d.maskImage} width={width} height={height} preserveAspectRatio="none" /></mask></defs>
                     <rect width={width} height={height} fill={color} opacity={active ? 0.9 : 0.7} mask={`url(#${maskPrefix}-${i})`} />
                   </> : d.points?.length ? <polygon points={d.points.map(p => `${p.x},${p.y}`).join(' ')} fill={`${color}22`} stroke={color} strokeWidth={active ? 4 : 2} vectorEffect="non-scaling-stroke" />
-                    : d.box ? <rect x={d.box.x - d.box.width / 2} y={d.box.y - d.box.height / 2} width={d.box.width} height={d.box.height} fill={`${color}14`} stroke={color} strokeWidth={active ? 4 : 2} vectorEffect="non-scaling-stroke" /> : null}
+                    : null}
+                  {d.box && <rect x={d.box.x - d.box.width / 2} y={d.box.y - d.box.height / 2} width={d.box.width} height={d.box.height} fill={d.maskImage || d.points?.length ? 'none' : `${color}14`} stroke={color} strokeWidth={active ? 4 : 2} vectorEffect="non-scaling-stroke" />}
                 </g>;
               })}
             </svg>
@@ -90,10 +100,10 @@ export function AnalysisResults({ result, onReset }: { result: Analysis; onReset
               </li>)}
             </ul>
           </article>;
-        }) : <article><h3>Nenhuma detecção</h3><p>Isso não confirma que a planta esteja saudável. Se houver sintomas, tente uma foto mais nítida e consulte um profissional.</p></article>}
+        }) : <article><h3>{filtered ? 'Predições eliminadas por filtros' : 'Nenhuma predição retornada pelo modelo'}</h3><p>{filtered ? 'Verifique os filtros configurados antes de interpretar o resultado.' : 'O Roboflow retornou uma lista vazia de predições. Isso não confirma que a planta esteja saudável. Se houver sintomas, tente uma foto mais nítida e consulte um profissional.'}</p></article>}
       </div>
     </div>
-    <div className="notice"><Info size={18} /><p>As classes são sugestões de um modelo treinado. Os resultados não substituem uma avaliação técnica agronômica.</p></div>
+    <div className="notice"><Info size={18} /><p>As classes são sugestões do modelo. Os resultados não substituem uma avaliação técnica agronômica.</p></div>
     <button className="button primary" onClick={onReset}><RotateCcw size={18} />Analisar outra imagem</button>
   </section>;
 }

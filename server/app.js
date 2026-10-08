@@ -2,7 +2,7 @@ import express from 'express';
 import multer from 'multer';
 import sharp from 'sharp';
 import { normalizeWorkflow } from './normalize.js';
-import { runDiseaseWorkflow } from './roboflow.js';
+import { runDiseaseWorkflow, workflowDiagnostics } from './roboflow.js';
 import { renderMasks } from './masks.js';
 export { endpoint } from './roboflow.js';
 export function createApp({ apiKey = process.env.ROBOFLOW_API_KEY, request = fetch } = {}) {
@@ -27,6 +27,7 @@ export function createApp({ apiKey = process.env.ROBOFLOW_API_KEY, request = fet
       if (!apiKey || apiKey === 'your_roboflow_api_key_here') return res.status(503).json({code:'CONFIGURATION_ERROR',error:'ROBOFLOW_API_KEY ausente no servidor. O serviço de análise ainda não está configurado.'});
       const raw = await runDiseaseWorkflow(buffer, {apiKey, request});
       const result = normalizeWorkflow(raw, {width:info.width,height:info.height});
+      result.diagnostics = {...result.diagnostics,...workflowDiagnostics()};
       try { await renderMasks(result); }
       catch { throw new Error('PREDICTION_PROCESSING_ERROR'); }
       for (const detection of result.detections) delete detection.rleMask;
@@ -34,6 +35,7 @@ export function createApp({ apiKey = process.env.ROBOFLOW_API_KEY, request = fet
       if (Buffer.byteLength(JSON.stringify(payload)) > 4 * 1024 * 1024) return res.status(413).json({code:'RESPONSE_TOO_LARGE',error:'O resultado excedeu o limite de resposta. Envie uma imagem menor.'});
       return res.json(payload);
     } catch (e) {
+      if (e.code === 'CONFIGURATION_ERROR') return res.status(503).json({code:e.code,error:'Configuração de inferência inválida. Verifique o Workflow e ROBOFLOW_CONFIDENCE no servidor.'});
       if (['AUTHENTICATION_ERROR','RATE_LIMIT','UPSTREAM_ERROR'].includes(e.code)) return res.status(e.code === 'RATE_LIMIT' ? 429 : 502).json({code:e.code,error:e.code === 'AUTHENTICATION_ERROR' ? 'Não foi possível autenticar o serviço de análise. Contate o responsável pela aplicação.' : e.code === 'RATE_LIMIT' ? 'O serviço de análise atingiu o limite de uso. Tente novamente mais tarde.' : 'O serviço de análise não concluiu a solicitação. Tente novamente.'});
       const timeout = e.code === 'TIMEOUT' || e.name === 'TimeoutError' || e.name === 'AbortError';
       const unexpected = e.message === 'UNSUPPORTED_RESPONSE';

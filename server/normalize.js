@@ -9,7 +9,8 @@ export function normalizeWorkflow(raw, fallback) {
   function prediction(p) {
     if (!object(p)) processingError();
     const d = resolveClass(p.class);
-    if (finite(p.confidence) && p.confidence >= 0 && p.confidence <= 1) d.confidence = p.confidence;
+    if (p.confidence !== undefined && (!finite(p.confidence) || p.confidence < 0 || p.confidence > 1)) processingError();
+    if (p.confidence !== undefined) d.confidence = p.confidence;
     if ([p.x,p.y,p.width,p.height].every(finite) && p.width > 0 && p.height > 0) d.box = {x:p.x,y:p.y,width:p.width,height:p.height};
     if (Array.isArray(p.points) && p.points.length >= 3 && p.points.every(q => object(q) && finite(q.x) && finite(q.y))) d.points = p.points.map(q => ({x:q.x,y:q.y}));
     if (Object.hasOwn(p,'rle_mask') && p.rle_mask !== null) d.rleMask = p.rle_mask;
@@ -27,7 +28,7 @@ export function normalizeWorkflow(raw, fallback) {
       return;
     }
     if (!object(value)) { if(inPredictions) processingError(); return; }
-    if (inPredictions && !Object.hasOwn(value,'predictions')) processingError();
+    if (inPredictions && !Object.hasOwn(value,'predictions') && !(Object.values(value).length && Object.values(value).every(child => object(child) || Array.isArray(child)))) processingError();
     if (object(value.image) && !(value.image.width === null && value.image.height === null)) {
       const {width,height} = value.image;
       if (![width,height].every(n => Number.isInteger(n) && n > 0)) processingError();
@@ -47,11 +48,11 @@ export function normalizeWorkflow(raw, fallback) {
     for (const [key,child] of Object.entries(value)) {
       if (['image','annotated_image','profiler_trace'].includes(key)) continue;
       if (key === 'predictions') visit(child,depth+1,true);
-      else if (!inPredictions && (object(child) || Array.isArray(child))) visit(child,depth+1);
+      else if (object(child) || Array.isArray(child)) visit(child,depth+1,inPredictions);
     }
   }
   if (!object(raw) && !Array.isArray(raw)) throw new Error('UNSUPPORTED_RESPONSE');
   visit(raw);
   if (!recognized) throw new Error('UNSUPPORTED_RESPONSE');
-  return {detections,image:dimensions,status:detections.length?'detected':'empty',...(annotatedImage?{annotatedImage}:{})};
+  return {detections,image:dimensions,status:detections.length?'detected':'empty',diagnostics:{returnedCount:detections.length,displayedCount:detections.length,filteredCount:0},...(annotatedImage?{annotatedImage}:{})};
 }

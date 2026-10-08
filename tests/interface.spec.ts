@@ -99,6 +99,8 @@ test('polygon and alpha mask retain geometry and receive class colors',async({pa
 });
 
 for (const scenario of [
+ {name:'unexpected predictions',status:502,contentType:'application/json',body:JSON.stringify({code:'UNEXPECTED_RESPONSE',error:'O Roboflow retornou uma resposta inesperada ou incompatível.'}),message:'resposta inesperada'},
+ {name:'prediction processing',status:502,contentType:'application/json',body:JSON.stringify({code:'PREDICTION_PROCESSING_ERROR',error:'Falha no processamento das predições retornadas pelo modelo.'}),message:'processamento das predições'},
  {name:'missing route',status:404,contentType:'text/html',body:'<html>Not found</html>',message:'rota /api/analyze não existe'},
  {name:'HTML fallback',status:200,contentType:'text/html',body:'<!doctype html><html>App</html>',message:'HTML em vez de JSON'},
  {name:'invalid JSON',status:200,contentType:'application/json',body:'{broken',message:'JSON inválido'},
@@ -112,4 +114,12 @@ for (const scenario of [
  await page.locator('input[type=file]').setInputFiles({name:'leaf.png',mimeType:'image/png',buffer});
  await page.getByRole('button',{name:'Analisar imagem com IA'}).click();
  await expect(page.getByRole('alert')).toContainText(scenario.message);
+});
+
+for(const filtered of [false,true])test(`empty results distinguish model output from application filters: ${filtered}`,async({page})=>{
+ const buffer=await sharp({create:{width:64,height:64,channels:3,background:'#568b43'}}).png().toBuffer();
+ await page.route('**/api/analyze',route=>route.fulfill({json:{detections:[],image:{width:64,height:64},originalImage:`data:image/png;base64,${buffer.toString('base64')}`,status:filtered?'filtered':'empty',diagnostics:{returnedCount:filtered?2:0,displayedCount:0,filteredCount:filtered?2:0,modelType:'specialized',confidenceThreshold:0.4}}}));
+ await page.goto('/');await page.locator('input[type=file]').setInputFiles({name:'test.png',mimeType:'image/png',buffer});await page.getByRole('button',{name:'Analisar imagem com IA'}).click();
+ await expect(page.locator('.detection-list h3')).toHaveText(filtered?'Predições eliminadas por filtros':'Nenhuma predição retornada pelo modelo');
+ await expect(page.locator('.notice').first()).toContainText('Confiança mínima no Workflow: 40%');
 });
