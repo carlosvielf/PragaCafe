@@ -3,7 +3,7 @@ const key = process.env.ROBOFLOW_API_KEY;
 if (!key) { console.error('ROBOFLOW_API_KEY ausente.'); process.exit(1); }
 try {
  const workspace=process.env.ROBOFLOW_WORKSPACE || 'carlos-viel-okshf';
- const workflow=process.env.ROBOFLOW_WORKFLOW_ID || 'doencas-o41wy';
+ const workflow=process.env.ROBOFLOW_WORKFLOW_ID || 'doencas-vdoencas-o41wy-1-rfdetr-nano-t1-logic';
  const response = await fetch(`https://api.roboflow.com/${workspace}/workflows/${workflow}`, {headers:{Authorization:`Bearer ${key}`},signal:AbortSignal.timeout(30000)});
  console.log(JSON.stringify({operation:'workflow-definition',status:response.status}));
  if (response.ok) {

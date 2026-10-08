@@ -2,17 +2,12 @@ import { setTimeout as delay } from 'node:timers/promises';
 import { diseaseNames } from './prompts.js';
 
 export const outputKeys = ['predictions'];
-export const workflowId = process.env.ROBOFLOW_WORKFLOW_ID || 'doencas-o41wy';
+export const workflowId = process.env.ROBOFLOW_WORKFLOW_ID || 'doencas-vdoencas-o41wy-1-rfdetr-nano-t1-logic';
 export const endpoint = `${(process.env.ROBOFLOW_API_URL || 'https://serverless.roboflow.com').replace(/\/$/, '')}/${process.env.ROBOFLOW_WORKSPACE || 'carlos-viel-okshf'}/workflows/${workflowId}`;
 export const workflowClasses = [...diseaseNames.keys()];
 export function workflowDiagnostics() {
-  const specialized = workflowId === 'doencas-o41wy';
-  const generic = workflowId.startsWith('general-segmentation-api');
-  const override = process.env.ROBOFLOW_CONFIDENCE;
-  if (override !== undefined && (!specialized || override.trim() === '' || !Number.isFinite(Number(override)) || Number(override) < 0 || Number(override) > 1)) throw new RoboflowError('CONFIGURATION_ERROR');
-  return { workflowId, modelType: specialized ? 'specialized' : generic ? 'generic' : 'unknown',
-    confidenceThreshold: specialized ? Number(override ?? 0.4) : generic ? 0.5 : null,
-    experimental: generic || override !== undefined };
+  return { workflowId, modelType: workflowId === 'doencas-vdoencas-o41wy-1-rfdetr-nano-t1-logic' ? 'specialized' : 'unknown',
+    confidenceThreshold: null, experimental: false };
 }
 export class RoboflowError extends Error {
   constructor(code, status) { super(code); this.name = 'RoboflowError'; this.code = code; this.status = status; }
@@ -31,12 +26,8 @@ export async function runDiseaseWorkflow(image, { apiKey = process.env.ROBOFLOW_
     catch { throw new RoboflowError('INVALID_IMAGE'); }
     input = { type: 'url', value: image };
   } else throw new RoboflowError('INVALID_IMAGE');
-  const diagnostics = workflowDiagnostics();
   const body = JSON.stringify({ api_key: apiKey, inputs: {
     [process.env.ROBOFLOW_IMAGE_INPUT || 'image']: input,
-    // A trained detector has fixed dataset classes; SAM3 takes text prompts.
-    ...(diagnostics.modelType === 'generic' ? { [process.env.ROBOFLOW_CLASSES_INPUT || 'classes']: workflowClasses } : {}),
-    ...(process.env.ROBOFLOW_CONFIDENCE !== undefined ? { confidence: diagnostics.confidenceThreshold } : {}),
   } });
   const signal = AbortSignal.timeout(timeoutMs); // Total budget, including retries/body reads.
   let raw;

@@ -48,3 +48,20 @@ test('real SAM3 RLE masks render without changing labels, boxes or confidence',a
   assert.match(result.detections[i].maskImage,/^data:image\/png;base64,/);
  }
 });
+
+for (const fixture of ['rfdetr-workflow-live-response.json','rfdetr-workflow-multiclass-response.json']) test('RF-DETR captured response preserves every box and confidence: '+fixture,async()=>{
+ const raw=JSON.parse(await readFile(new URL('./fixtures/'+fixture,import.meta.url)));
+ const result=normalizeWorkflow(raw,size),predictions=raw.outputs[0].predictions.predictions;
+ assert.equal(result.detections.length,predictions.length);
+ assert.deepEqual(result.image,raw.outputs[0].predictions.image);
+ for(let i=0;i<predictions.length;i++){
+  const p=predictions[i],d=result.detections[i];
+  assert.equal(d.className,p.class);assert.equal(d.sourceClass,p.class);assert.equal(d.confidence,p.confidence);
+  assert.deepEqual(d.box,{x:p.x,y:p.y,width:p.width,height:p.height});
+ }
+ if(fixture.includes('multiclass'))assert.deepEqual([...new Set(result.detections.map(d=>d.className))],['bicho_mineirorotation','phomarotation']);
+});
+test('invalid or partial detection geometry raises an error instead of losing boxes',()=>{
+ for(const box of [{x:1},{x:1,y:2,width:0,height:4},{x:1,y:2,width:3,height:NaN}])
+  assert.throws(()=>normalizeWorkflow({predictions:[{class:'ferrugemrotation',confidence:0.8,...box}]},size),/PREDICTION_PROCESSING_ERROR/);
+});

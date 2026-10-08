@@ -11,6 +11,7 @@ export function normalizeWorkflow(raw, fallback) {
     const d = resolveClass(p.class);
     if (p.confidence !== undefined && (!finite(p.confidence) || p.confidence < 0 || p.confidence > 1)) processingError();
     if (p.confidence !== undefined) d.confidence = p.confidence;
+    if (['x','y','width','height'].some(key => Object.hasOwn(p,key)) && (![p.x,p.y,p.width,p.height].every(finite) || p.width <= 0 || p.height <= 0)) processingError();
     if ([p.x,p.y,p.width,p.height].every(finite) && p.width > 0 && p.height > 0) d.box = {x:p.x,y:p.y,width:p.width,height:p.height};
     if (Array.isArray(p.points) && p.points.length >= 3 && p.points.every(q => object(q) && finite(q.x) && finite(q.y))) d.points = p.points.map(q => ({x:q.x,y:q.y}));
     if (Object.hasOwn(p,'rle_mask') && p.rle_mask !== null) d.rleMask = p.rle_mask;

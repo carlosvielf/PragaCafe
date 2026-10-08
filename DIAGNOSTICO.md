@@ -1,84 +1,29 @@
-# Diagnóstico de inferência — 07/10/2026
+# Integra??o RF-DETR ? 07/10/2026
 
-## Causa comprovada na imagem de teste
+O Workflow publicado solicitado ? `doencas-vdoencas-o41wy-1-rfdetr-nano-t1-logic`, no workspace `carlos-viel-okshf` e servidor `https://serverless.roboflow.com`. Sua defini??o foi consultada pela API autenticada: uma entrada `InferenceImage` chamada `image`, uma sa?da `JsonField` chamada `predictions` e etapa `roboflow_core/inner_workflow@v1`.
 
-O Workflow `general-segmentation-api-5` usa `roboflow_core/sam3@v3`, modelo `sam3/sam3_final`: segmentação genérica por texto. Não usa o modelo treinado no dataset `Doencas`. Os nomes em português eram enviados como prompts. Requisições REST reais, antes de alterar o processamento, retornaram HTTP 200 e lista vazia tanto com esses nomes quanto com os quatro identificadores originais. Isso não demonstra que SAM3 sempre retorne zero, mas comprova a origem do resultado vazio no teste.
+## Requisi??o e parser
 
-A definição publicada foi consultada pelo MCP Roboflow. Também foram confirmadas as classes do projeto `carlos-viel-okshf/doencas-o41wy`: `bicho_mineirorotation`, `cercosporarotation`, `ferrugemrotation` e `phomarotation`. O projeto é de detecção de objetos, não segmentação.
+A chave ? carregada de ROBOFLOW_API_KEY no servidor e enviada em api_key no JSON. A imagem ? enviada como {type:"base64",value:"..."}. Classes e confidence n?o s?o enviados, mesmo se as antigas vari?veis existirem no ambiente. O Workflow n?o declara essas entradas. O limiar interno n?o ? presumido.
 
-Na mesma imagem real `.tmp/leaf3.jpg`, processada como JPEG 1600 × 800, o Workflow `doencas-o41wy` retornou 10 regiões de bicho-mineiro. Esse Workflow usa `carlos-viel-okshf/doencas-o41wy-1-rfdetr-nano-t1`, RF-DETR Nano. Sua entrada padrão recebe imagem; não é necessário enviar classes como prompts para esse modelo.
+A resposta real cont?m outputs[0].predictions.image e outputs[0].predictions.predictions. Cada detec??o mant?m class, confidence, x, y, width e height. O parser existente j? suportava essa hierarquia; foi refor?ado para rejeitar geometria parcial ou inv?lida, evitando perder caixas silenciosamente. Coordenadas x/y s?o centrais; o SVG existente usa x-width/2 e y-height/2.
 
-O upload real em `https://praga-cafe.vercel.app` também retornou zero detecções, `status: empty` e HTTP 200. Não há acesso à configuração interna desse deployment para comprovar seu identificador de modelo, mas seu resultado foi capturado. A configuração anterior local foi comprovada. Nenhuma publicação foi realizada nesta correção.
+As quatro classes preservadas s?o bicho_mineirorotation, cercosporarotation, ferrugemrotation e phomarotation. Cores existentes: ?mbar, roxo, vermelho e azul. Nenhum arquivo de interface foi alterado; c?mera, upload, sele??o e identidade visual foram preservados.
 
-## Estrutura JSON real
+## Infer?ncia real e compara??o com o navegador
 
-```text
-outputs[0]
-  predictions
-    image: { width: 1600, height: 800 }
-    predictions: [
-      { class, class_id, confidence, x, y, width, height,
-        detection_id, parent_id }, ...
-    ]
-  inference_id
-  model_id
-profiler_trace: []
-```
+- .tmp/leaf3.jpg: 10 detec??es de bicho-mineiro; 10 caixas no DOM, com cada classe, confian?a e coordenada comparada ? resposta da mesma chamada.
+- .tmp/leaf2.jpg: 3 detec??es, duas de bicho-mineiro e uma de Phoma; caixas sobrepostas preservadas, cores conferidas, duas classes no frontend. Confian?as da chamada: 0.8629627227783203, 0.8574524521827698 e 0.4642837345600128.
+- .tmp/leaf.jpg e .tmp/leaf4.jpg: listas vazias reais, tratadas como aus?ncia de predi??es.
 
-As predições estão em `outputs[0].predictions.predictions`, não diretamente na raiz. `x` e `y` representam o centro da caixa. O SVG converte para o canto usando `x - width/2` e `y - height/2`, preservando a escala da imagem enviada.
+Capturas sem credenciais nem imagens em server/fixtures/rfdetr-workflow-live-response.json e server/fixtures/rfdetr-workflow-multiclass-response.json. Isso valida o transporte e a apresenta??o de m?ltiplas classes; n?o estabelece a precis?o agron?mica dos r?tulos.
 
-O SAM3 retornou a mesma hierarquia com `image: {width:null,height:null}`, `predictions: []`, além de `annotated_image: {type:base64,value:...}`. A resposta completa foi inspecionada com imagens/base64 omitidos dos registros. O resultado especializado não contém máscaras nem polígonos: são bounding boxes reais. O suporte a `points` e máscaras COCO `rle_mask` foi mantido e validado com a captura real existente `sam3-real-predictions.json`. A imagem anotada do provedor é descartada antes da transmissão, pois a interface desenha a geometria com as cores locais.
+## Local e Vercel
 
-## Filtros e confiança
+O padr?o do c?digo, .env local, .env.example e script de inspe??o usam o Workflow solicitado. A chave local foi preservada. A entrada api/index.js da Vercel passou no upload real em execu??o local, com dez detec??es. O Express ? compartilhado entre os dois ambientes; o frontend chama /api/analyze no mesmo dom?nio. Permanecem os limites existentes de imagem/resposta e or?amento de timeout de 55 segundos dentro da fun??o de 60 segundos.
 
-| Configuração | SAM3 anterior | Detector especializado |
-| --- | --- | --- |
-| Confiança mínima | 0.5, padrão do bloco SAM3 v3 | 0.4, entrada publicada |
-| NMS IoU | 0.9, padrão do bloco; NMS ativo | 0.3, entrada publicada |
-| NMS entre classes | Entre prompts | `class_agnostic_nms: false` |
-| Máximo de detecções | Não declarado no Workflow | 1000 |
-| Filtro adicional na aplicação | Nenhum | Nenhum |
+Na Vercel, configure as cinco vari?veis do README em Production/Preview, remova ROBOFLOW_CLASSES_INPUT e ROBOFLOW_CONFIDENCE, e fa?a redeploy. Vari?veis remotas antigas sobrescrevem o padr?o do c?digo. Nenhuma configura??o remota ou publica??o foi realizada nesta tarefa.
 
-Os limiares dos modelos não são diretamente comparáveis. O detector mantém seu valor publicado de 40%; nenhuma redução automática de seu threshold foi feita. O Roboflow não expõe propostas anteriores aos filtros: não é possível quantificar quantas regiões foram eliminadas internamente por confiança ou NMS. `filteredCount: 0` refere-se somente à aplicação.
+## Verifica??es
 
-`ROBOFLOW_CONFIDENCE` permite testes no Workflow especializado, validado entre 0 e 1. Qualquer override é identificado como experimental. A variável deve ficar ausente em produção para manter o padrão publicado. O modo SAM3 genérico também aparece como experimental.
-
-## Correções
-
-- Configuração padrão e `.env` local usam `doencas-o41wy`; chave preservada.
-- Detector especializado recebe imagem, sem prompts de classe indevidos. SAM3 explicitamente selecionado recebe os identificadores originais.
-- Normalização mantém todas as regiões, inclusive classes desconhecidas e confiança baixa; aceita contêineres nomeados aninhados.
-- Resposta malformada e confiança inválida geram erros técnicos, em vez de análise vazia ou perda silenciosa de confiança.
-- Diagnósticos mostram número recebido, exibido e filtrado pela aplicação, tipo de modelo e threshold.
-- Interface distingue lista vazia, predições filtradas, resposta incompatível e erro de processamento.
-- Bounding boxes permanecem visíveis também quando existe polígono ou máscara. Mantidos nomes, confiança, contagem, legenda, seleção, cores e responsividade.
-
-A skill `frontend-design` foi procurada no projeto e nas pastas acessíveis de skills/plugins, mas não foi encontrada. Os estilos e componentes existentes foram preservados.
-
-## Evidências de validação
-
-O script `scripts/verify-inference-ui.mjs` fez upload no navegador, enviou a imagem ao backend e chamou Roboflow reais. Comparou cada classe, confiança e coordenada retornada com o backend e os elementos SVG, além de verificar responsividade em 1440 e 390 pixels. Resultado: **10 recebidas, 10 exibidas, 0 filtradas localmente, 10 caixas**. Confianças dessa execução: **82,1% a 96,4%**. Não foram simuladas predições nesse fluxo.
-
-A captura das predições está em `server/fixtures/doencas-live-response.json`, sem imagens/base64. Pequenas diferenças entre chamadas do serviço foram observadas; cada execução foi comparada com sua própria resposta original. Os testes controlados são exclusivos da suíte, sem substituir a inferência no aplicativo.
-
-Passaram build/TypeScript, **29 testes de backend** e **32 testes Playwright** de desktop e celular, incluindo máscaras RLE, erros técnicos, cores, coordenadas e contagem. Também passou o upload multipart usando a mesma entrada Express da Vercel, com dez detecções reais. As inferências reais comprovam o fluxo nesta imagem, mas não medem precisão agronômica para todas as classes.
-
-## Arquivos alterados ou adicionados
-
-- `.env` (somente identificador do Workflow; ignorado pelo Git) e `.env.example`.
-- `server/roboflow.js`, `server/normalize.js` e `server/app.js`.
-- `src/components/AnalysisResults.tsx` e `src/types.ts`.
-- `server/roboflow.test.js`, `server/normalize.test.js`, `server/app.test.js` e `tests/interface.spec.ts`.
-- `scripts/inspect-workflow.mjs` e `scripts/verify-inference-ui.mjs`.
-- `server/fixtures/doencas-live-response.json`.
-- `README.md` e `DIAGNOSTICO.md`.
-
-## Aplicar na Vercel
-
-Altere `ROBOFLOW_WORKFLOW_ID=doencas-o41wy` em Production e Preview, quando usado. Deixe `ROBOFLOW_CONFIDENCE` ausente, publique este código e execute:
-
-```powershell
-node --env-file=.env scripts/verify-api.mjs caminho/folha.jpg https://praga-cafe.vercel.app
-```
-
-As variáveis da Vercel sobrescrevem o padrão do código. O deployment atual não foi declarado corrigido: a validação publicada precisa ser repetida após o novo deploy.
+Build e TypeScript passaram. Passaram 32 testes de backend e 32 testes Playwright (desktop e celular), incluindo c?mera, upload, cores e geometria. As infer?ncias reais no navegador e o upload pela entrada da API da Vercel tamb?m passaram.

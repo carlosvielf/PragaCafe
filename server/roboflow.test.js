@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { readFile, rm } from 'node:fs/promises';
+import { readFile } from 'node:fs/promises';
 import { dirname } from 'node:path';
 import { runDiseaseWorkflow, outputKeys, RoboflowError, workflowClasses, workflowDiagnostics } from './roboflow.js';
 import { normalizeWorkflow } from './normalize.js';
@@ -22,24 +22,24 @@ test('retries transient failures with private body auth; preserves polygons', as
   }});
   assert.equal(calls,3);assert.deepEqual(result[0][outputKeys[0]].predictions[0].points,[{x:1,y:1}]);
 });
-test('specialized workflow keeps its published threshold and exact dataset identifiers',()=>{
+test('RF-DETR workflow preserves published settings and exact dataset identifiers',()=>{
   assert.deepEqual(workflowClasses,['bicho_mineirorotation','cercosporarotation','ferrugemrotation','phomarotation']);
-  assert.deepEqual(workflowDiagnostics(),{workflowId:'doencas-o41wy',modelType:'specialized',confidenceThreshold:0.4,experimental:false});
+  assert.deepEqual(workflowDiagnostics(),{workflowId:'doencas-vdoencas-o41wy-1-rfdetr-nano-t1-logic',modelType:'specialized',confidenceThreshold:null,experimental:false});
 });
-test('confidence overrides are validated and marked experimental',async()=>{
-  const saved=process.env.ROBOFLOW_CONFIDENCE;
+test('obsolete classes and confidence variables never become workflow inputs',async()=>{
+  const saved={classes:process.env.ROBOFLOW_CLASSES_INPUT,confidence:process.env.ROBOFLOW_CONFIDENCE};
   try {
-    process.env.ROBOFLOW_CONFIDENCE='0.7';
-    assert.equal(workflowDiagnostics().experimental,true);
-    await runDiseaseWorkflow(image,{apiKey:'test',request:async(_url,options)=>{
-      assert.equal(JSON.parse(options.body).inputs.confidence,0.7);
+    process.env.ROBOFLOW_CLASSES_INPUT='classes';process.env.ROBOFLOW_CONFIDENCE='0.7';
+    await runDiseaseWorkflow(Buffer.from('image bytes'),{apiKey:'test',request:async(url,options)=>{
+      assert.equal(url,'https://serverless.roboflow.com/carlos-viel-okshf/workflows/doencas-vdoencas-o41wy-1-rfdetr-nano-t1-logic');
+      assert.deepEqual(JSON.parse(options.body).inputs,{image:{type:'base64',value:Buffer.from('image bytes').toString('base64')}});
       return Response.json({outputs:[{predictions:{predictions:[]}}]});
     }});
-    for(const invalid of ['','invalid','-0.1','1.1']){
-      process.env.ROBOFLOW_CONFIDENCE=invalid;
-      assert.throws(workflowDiagnostics,e=>e.code==='CONFIGURATION_ERROR');
+  } finally {
+    for(const [key,value] of [['ROBOFLOW_CLASSES_INPUT',saved.classes],['ROBOFLOW_CONFIDENCE',saved.confidence]]){
+      if(value===undefined)delete process.env[key];else process.env[key]=value;
     }
-  } finally { if(saved===undefined)delete process.env.ROBOFLOW_CONFIDENCE;else process.env.ROBOFLOW_CONFIDENCE=saved; }
+  }
 });
 test('rejects HTTP URLs and malformed schemas with typed errors',async()=>{
   await assert.rejects(runDiseaseWorkflow('http://example.com/photo.jpg',{apiKey:'test'}),e=>e instanceof RoboflowError && e.code==='INVALID_IMAGE');

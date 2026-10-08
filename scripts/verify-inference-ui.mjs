@@ -52,9 +52,13 @@ try {
   for(let i=0;i<presented.detections.length;i++) {
     const d=presented.detections[i];if(!d.box)continue;
     const rect=page.locator(`g[data-region="${i+1}"]>rect[stroke]`);
+    const colors={bicho_mineirorotation:'#F59E0B',cercosporarotation:'#8B5CF6',ferrugemrotation:'#EF4444',phomarotation:'#3B82F6'};
+    assert.equal(await rect.getAttribute('stroke'),colors[d.className]??'#64748B');
     for(const [k,v] of Object.entries({x:d.box.x-d.box.width/2,y:d.box.y-d.box.height/2,width:d.box.width,height:d.box.height}))assert.equal(Number(await rect.getAttribute(k)),v);
   }
-  assert.deepEqual(await page.locator('.region-confidences strong').allTextContents(),presented.detections.filter(d=>d.confidence!==undefined).map(d=>`${(d.confidence*100).toLocaleString('pt-BR',{maximumFractionDigits:1})}%`));
+  assert.equal(await page.locator('.detection-list article').count(),new Set(presented.detections.map(d=>d.className)).size);
+  const grouped=[...new Set(presented.detections.map(d=>d.className))].flatMap(c=>presented.detections.filter(d=>d.className===c));
+  assert.deepEqual(await page.locator('.region-confidences strong').allTextContents(),grouped.filter(d=>d.confidence!==undefined).map(d=>`${(d.confidence*100).toLocaleString('pt-BR',{maximumFractionDigits:1})}%`));
   for(const viewport of [{width:1440,height:1000},{width:390,height:844}]){
     await page.setViewportSize(viewport);
     assert.ok(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth));

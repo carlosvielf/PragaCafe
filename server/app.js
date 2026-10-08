@@ -35,7 +35,7 @@ export function createApp({ apiKey = process.env.ROBOFLOW_API_KEY, request = fet
       if (Buffer.byteLength(JSON.stringify(payload)) > 4 * 1024 * 1024) return res.status(413).json({code:'RESPONSE_TOO_LARGE',error:'O resultado excedeu o limite de resposta. Envie uma imagem menor.'});
       return res.json(payload);
     } catch (e) {
-      if (e.code === 'CONFIGURATION_ERROR') return res.status(503).json({code:e.code,error:'Configuração de inferência inválida. Verifique o Workflow e ROBOFLOW_CONFIDENCE no servidor.'});
+      if (e.code === 'CONFIGURATION_ERROR') return res.status(503).json({code:e.code,error:'Configuração de inferência inválida. Verifique as vari?veis ROBOFLOW no servidor.'});
       if (['AUTHENTICATION_ERROR','RATE_LIMIT','UPSTREAM_ERROR'].includes(e.code)) return res.status(e.code === 'RATE_LIMIT' ? 429 : 502).json({code:e.code,error:e.code === 'AUTHENTICATION_ERROR' ? 'Não foi possível autenticar o serviço de análise. Contate o responsável pela aplicação.' : e.code === 'RATE_LIMIT' ? 'O serviço de análise atingiu o limite de uso. Tente novamente mais tarde.' : 'O serviço de análise não concluiu a solicitação. Tente novamente.'});
       const timeout = e.code === 'TIMEOUT' || e.name === 'TimeoutError' || e.name === 'AbortError';
       const unexpected = e.message === 'UNSUPPORTED_RESPONSE';

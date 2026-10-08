@@ -1,0 +1,47 @@
+{
+  "outputs": [
+    {
+      "predictions": {
+        "image": {
+          "width": 1600,
+          "height": 800
+        },
+        "predictions": [
+          {
+            "width": 127,
+            "height": 68,
+            "x": 237.5,
+            "y": 422,
+            "confidence": 0.8629627227783203,
+            "class_id": 0,
+            "class": "bicho_mineirorotation",
+            "detection_id": "8357860f-b0b8-4604-bc23-65103cca1657",
+            "parent_id": "image"
+          },
+          {
+            "width": 209,
+            "height": 166,
+            "x": 694.5,
+            "y": 259,
+            "confidence": 0.8574524521827698,
+            "class_id": 0,
+            "class": "bicho_mineirorotation",
+            "detection_id": "465fa239-73e6-44e3-9878-f244a31ce9a6",
+            "parent_id": "image"
+          },
+          {
+            "width": 209,
+            "height": 166,
+            "x": 694.5,
+            "y": 259,
+            "confidence": 0.4642837345600128,
+            "class_id": 3,
+            "class": "phomarotation",
+            "detection_id": "0c966458-6fd0-4033-8973-0cc2a7ef335e",
+            "parent_id": "image"
+          }
+        ]
+      }
+    }
+  ]
+}
