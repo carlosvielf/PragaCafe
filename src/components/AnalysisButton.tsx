@@ -1,0 +1,2 @@
+import { ScanLine, LoaderCircle } from 'lucide-react';
+export function AnalysisButton({disabled,loading,onClick}:{disabled:boolean;loading:boolean;onClick:()=>void}) { return <button className="button primary analyze-button" disabled={disabled||loading} onClick={onClick}>{loading?<LoaderCircle className="spin" size={19}/>:<ScanLine size={19}/>} {loading?'Analisando sua imagem…':'Analisar imagem com IA'}</button>; }

@@ -1,0 +1,2 @@
+import { Trash2 } from 'lucide-react';
+export function ImagePreview({url,disabled,onRemove}:{url:string;disabled:boolean;onRemove:()=>void}) { return <div className="preview"><img src={url} alt="Folha de café selecionada para análise"/><div><span>Imagem pronta para análise</span><button className="text-button" disabled={disabled} onClick={onRemove}><Trash2 size={16}/>Remover</button></div></div>; }

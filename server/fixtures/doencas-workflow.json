@@ -1,0 +1,41 @@
+{
+  "version": "1.0",
+  "inputs": [
+    {
+      "type": "InferenceImage",
+      "name": "image"
+    }
+  ],
+  "steps": [
+    {
+      "type": "roboflow_core/inner_workflow@v1",
+      "name": "model",
+      "workflow_workspace_id": "carlos-viel-okshf",
+      "workflow_id": "doencas-o41wy",
+      "workflow_version_id": null,
+      "parameter_bindings": {
+        "image": "$inputs.image",
+        "model_id": "carlos-viel-okshf/doencas-o41wy-1-rfdetr-nano-t1"
+      }
+    }
+  ],
+  "outputs": [
+    {
+      "type": "JsonField",
+      "name": "predictions",
+      "coordinates_system": "own",
+      "selector": "$steps.model.predictions"
+    }
+  ],
+  "metadata": {
+    "ui": {
+      "nodes": {
+        "$steps.model": {
+          "renderAs": "model"
+        }
+      },
+      "edges": [],
+      "groups": []
+    }
+  }
+}

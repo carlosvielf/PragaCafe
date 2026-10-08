@@ -1,0 +1,2 @@
+import { motion, useReducedMotion } from 'framer-motion';
+export function LoadingAnalysis() { const reduce=useReducedMotion(); return <div className="loading-analysis" role="status"><motion.div animate={reduce?{}:{opacity:[0.4,1,0.4]}} transition={{duration:1.5,repeat:Infinity}} className="loading-bar"/><span>Procurando regiões de interesse na folha. Isso pode levar alguns instantes.</span></div>; }
