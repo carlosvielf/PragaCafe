@@ -8,6 +8,7 @@ export const diseaseNames = new Map([
 ]);
 export function resolveClass(label) {
   const hasLabel = typeof label === 'string' && label.trim().length > 0;
+  if (hasLabel && [...diseaseNames.values()].includes(label)) { const [className,name] = [...diseaseNames].find(([,name]) => name === label); return {className,name,sourceClass:label}; }
   if (hasLabel) return {className:label,name:diseaseNames.get(label) ?? label,sourceClass:label};
   throw new Error('PREDICTION_PROCESSING_ERROR');
 }

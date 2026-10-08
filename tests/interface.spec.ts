@@ -97,3 +97,19 @@ test('polygon and alpha mask retain geometry and receive class colors',async({pa
  await page.locator('.region-select').nth(1).click();
  await expect(page.locator('g[data-region="2"]')).toHaveAttribute('opacity','1');
 });
+
+for (const scenario of [
+ {name:'missing route',status:404,contentType:'text/html',body:'<html>Not found</html>',message:'rota /api/analyze não existe'},
+ {name:'HTML fallback',status:200,contentType:'text/html',body:'<!doctype html><html>App</html>',message:'HTML em vez de JSON'},
+ {name:'invalid JSON',status:200,contentType:'application/json',body:'{broken',message:'JSON inválido'},
+ {name:'timeout',status:504,contentType:'text/plain',body:'FUNCTION_INVOCATION_TIMEOUT',message:'Timeout'},
+ {name:'missing key',status:503,contentType:'application/json',body:JSON.stringify({code:'CONFIGURATION_ERROR',error:'ROBOFLOW_API_KEY ausente no servidor.'}),message:'ROBOFLOW_API_KEY ausente'},
+ {name:'authentication',status:502,contentType:'application/json',body:JSON.stringify({code:'AUTHENTICATION_ERROR',error:'Não foi possível autenticar o serviço de análise.'}),message:'autenticar'},
+]) test(`specific API error: ${scenario.name}`,async({page})=>{
+ const buffer=await sharp({create:{width:64,height:64,channels:3,background:'#568b43'}}).png().toBuffer();
+ await page.route('**/api/analyze',route=>route.fulfill({status:scenario.status,contentType:scenario.contentType,body:scenario.body}));
+ await page.goto('/');
+ await page.locator('input[type=file]').setInputFiles({name:'leaf.png',mimeType:'image/png',buffer});
+ await page.getByRole('button',{name:'Analisar imagem com IA'}).click();
+ await expect(page.getByRole('alert')).toContainText(scenario.message);
+});

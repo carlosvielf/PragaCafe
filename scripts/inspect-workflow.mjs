@@ -2,7 +2,7 @@
 const key = process.env.ROBOFLOW_API_KEY;
 if (!key) { console.error('ROBOFLOW_API_KEY ausente.'); process.exit(1); }
 try {
- const response = await fetch('https://api.roboflow.com/carlos-viel-okshf/workflows/doencas-vdoencas-o41wy-1-rfdetr-nano-t1-logic', {headers:{Authorization:`Bearer ${key}`},signal:AbortSignal.timeout(30000)});
+ const response = await fetch('https://api.roboflow.com/carlos-viel-okshf/workflows/general-segmentation-api-5', {headers:{Authorization:`Bearer ${key}`},signal:AbortSignal.timeout(30000)});
  console.log(JSON.stringify({operation:'workflow-definition',status:response.status}));
  if (response.ok) {
   const raw=await response.json(); const config=typeof raw.workflow?.config==='string'?JSON.parse(raw.workflow.config):raw.workflow?.config;

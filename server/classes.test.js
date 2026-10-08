@@ -22,3 +22,7 @@ test('positive MCP response preserves every class, confidence and bounding box',
     assert.deepEqual(d.box,{x:p.x,y:p.y,width:p.width,height:p.height});
   }
 });
+
+test('workflow prompts map to the four existing UI colors and names',()=>{
+  for (const [className,name] of diseaseNames) assert.deepEqual(resolveClass(name),{className,name,sourceClass:name});
+});

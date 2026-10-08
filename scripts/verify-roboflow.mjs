@@ -15,7 +15,7 @@ try {
   for (let i=0;i<original.length;i++) {
     const prediction=original[i],detection=normalized.detections[i];
     assert.equal(detection.sourceClass,prediction.class);
-    assert.equal(detection.name,diseaseNames.get(prediction.class) ?? prediction.class);
+    assert.equal(detection.name,(await import('../server/prompts.js')).resolveClass(prediction.class).name);
     assert.equal(detection.confidence,prediction.confidence);
     if (detection.box) assert.deepEqual(detection.box,{x:prediction.x,y:prediction.y,width:prediction.width,height:prediction.height});
   }

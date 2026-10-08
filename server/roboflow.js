@@ -1,19 +1,14 @@
-import { readFile, mkdtemp, writeFile } from 'node:fs/promises';
-import { tmpdir } from 'node:os';
-import { join } from 'node:path';
 import { setTimeout as delay } from 'node:timers/promises';
 
-// Published definition retrieved through OAuth MCP on 2026-10-07.
-export const workflow = JSON.parse(await readFile(new URL('./fixtures/doencas-workflow.json', import.meta.url), 'utf8'));
-export const outputKeys = workflow.outputs.map(output => output.name);
-export const endpoint = 'https://serverless.roboflow.com/carlos-viel-okshf/workflows/doencas-vdoencas-o41wy-1-rfdetr-nano-t1-logic';
+export const outputKeys = ['predictions'];
+export const endpoint = `${(process.env.ROBOFLOW_API_URL || 'https://serverless.roboflow.com').replace(/\/$/, '')}/${process.env.ROBOFLOW_WORKSPACE || 'carlos-viel-okshf'}/workflows/${process.env.ROBOFLOW_WORKFLOW_ID || 'general-segmentation-api-5'}`;
+export const workflowClasses = ['Bicho-mineiro', 'Cercosporiose', 'Ferrugem do cafeeiro', 'Mancha de Phoma'];
 export class RoboflowError extends Error {
   constructor(code, status) { super(code); this.name = 'RoboflowError'; this.code = code; this.status = status; }
 }
 const object = value => value !== null && typeof value === 'object' && !Array.isArray(value);
 
 /** Run one static image. Returns one dictionary per image, using declared output names.
- * Image outputs are persisted to unique OS temporary directories; caller owns cleanup.
  * @param {Buffer|string} image JPEG bytes or an HTTPS image URL.
  */
 export async function runDiseaseWorkflow(image, { apiKey = process.env.ROBOFLOW_API_KEY, request = fetch, timeoutMs = 55000, backoffMs = 250 } = {}) {
@@ -25,13 +20,15 @@ export async function runDiseaseWorkflow(image, { apiKey = process.env.ROBOFLOW_
     catch { throw new RoboflowError('INVALID_IMAGE'); }
     input = { type: 'url', value: image };
   } else throw new RoboflowError('INVALID_IMAGE');
-  // This workflow declares no WorkflowParameter inputs. Do not send classes/model_id.
-  const body = JSON.stringify({ inputs: { [workflow.inputs[0].name]: input } });
+  const body = JSON.stringify({ api_key: apiKey, inputs: {
+    [process.env.ROBOFLOW_IMAGE_INPUT || 'image']: input,
+    [process.env.ROBOFLOW_CLASSES_INPUT || 'classes']: workflowClasses,
+  } });
   const signal = AbortSignal.timeout(timeoutMs); // Total budget, including retries/body reads.
   let raw;
   for (let attempt = 0; attempt < 3; attempt++) {
     try {
-      const response = await request(endpoint, { method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${apiKey}` }, body, signal });
+      const response = await request(endpoint, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body, signal });
       if (!response.ok) {
         await response.body?.cancel();
         const code = [401,403].includes(response.status) ? 'AUTHENTICATION_ERROR' : response.status === 429 ? 'RATE_LIMIT' : 'UPSTREAM_ERROR';
@@ -50,24 +47,7 @@ export async function runDiseaseWorkflow(image, { apiKey = process.env.ROBOFLOW_
   }
   const results = Array.isArray(raw) ? raw : raw?.outputs;
   if (!Array.isArray(results) || results.length !== 1 || !object(results[0]) || outputKeys.some(key => !Object.hasOwn(results[0], key))) throw new RoboflowError('UNSUPPORTED_RESPONSE');
-  async function compact(value) {
-    if (Array.isArray(value)) { for (let i=0;i<value.length;i++) value[i] = await compact(value[i]); return value; }
-    if (!object(value)) return value;
-    if (value.type === 'base64') {
-      if (typeof value.value !== 'string' || !value.value.length || value.value.length % 4 || !/^[A-Za-z0-9+/]*={0,2}$/.test(value.value)) throw new RoboflowError('UNSUPPORTED_RESPONSE');
-      const bytes = Buffer.from(value.value, 'base64');
-      const directory = await mkdtemp(join(tmpdir(), 'cafeia-workflow-'));
-      const path = join(directory, 'image.bin');
-      await writeFile(path, bytes);
-      delete value.value;
-      return { type: 'file', path };
-    }
-    delete value.points;
-    for (const key of Object.keys(value)) value[key] = await compact(value[key]);
-    return value;
-  }
-  const output = results[0];
-  for (const key of Object.keys(output)) if (!outputKeys.includes(key)) delete output[key];
-  await compact(output);
-  return results;
+  // Keep the raw prediction geometry; the UI renders its own class colors.
+  // Provider visualization is redundant and can exceed Vercel's response limit.
+  return [{ predictions: results[0].predictions }];
 }
